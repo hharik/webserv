@@ -68,32 +68,27 @@ class parsing
 			return line;
 		}
 
-		void split_and_assign(std::string line, size_t i)
+		void split_and_assign(std::string line)
 		{
 			if (line.empty())
-				return; //
-			std::cout << "\n/" << std::endl;
+				return;
 			std::stringstream ss(line);
 			std::vector<std::string> tokens;
 			std::string token;
 			while (getline(ss, token, ' '))
 				tokens.push_back(token);
-			for (std::vector<std::string>::iterator it = tokens.begin(); it != tokens.end(); it++)
-				std::cout << *it << std::endl;
+			matrix.push_back(tokens);
 		}
 
 		void parse()
 		{
-			int i = 0;
 			for (std::vector<std::string>::iterator it = before_parse.begin(); it != before_parse.end(); it++)
 			{
 				// std::cout << *it << std::endl;
 				*it = reduce_space(*it, " \t\n\r\v\f", " ");
 				// std::cout << *it << std::endl;
-				split_and_assign(*it, i);
-				i++;
+				split_and_assign(*it);
 			}
-			
 		}
 		void check() {
 			if (bracket.size() > 0)
@@ -109,10 +104,21 @@ class parsing
 				while (getline(ifs, buff))
 					before_parse.push_back(buff);
 				parse();
-				// check();
-			
+				check();
+				int i = 0;
+				int j = 0;
+
+				// for (std::vector<std::string>::iterator it = matrix[i].begin(); it != matrix[i].end(); it++, i++)
+				// 	std::cout << *it << std::endl;
+				for(int i=0; i< matrix.size(); i++)
+				{
+					for(int j=0; j < matrix.at(i).size(); j++)
+					{
+						std::cout  << "*" << matrix[i][j] << "*" << std::endl;
+					}
+				}
 				// for (std::vector<std::vector<std::string> >::iterator it = matrix.begin(); it != matrix.end(); it++)
-				// 	std::cout << *(it)->begin() << std::endl;
+				// 	std::cout << it.at(1). << std::endl;
 			} else {
 				std::cerr << "file Not Found" << std::endl;
 				exit(1); 

@@ -21,9 +21,9 @@ class parsing
 		std::string trim(std::string line, std::string whitespace)
 		{
 			int i = 0;
-			if (line.length() == 0)
-				return " ";
 			std::size_t strbegin = line.find_first_not_of(whitespace);
+			if (strbegin == std::string::npos)
+				return " ";
 			std::size_t strend = line.find_last_not_of(whitespace);
 			std::size_t strRange = strend - strbegin + 1;
 			return line.substr(strbegin, strRange);
@@ -31,7 +31,7 @@ class parsing
 
 		std::string reduce_space(std::string line, std::string whitespace, std::string fill = " ")
 		{
-			line = trim(line, " \t\r\v\f");
+			line = trim(line, " \t\r\v\f\n");
 			std::size_t beginspace =  line.find_first_of(whitespace);
 			std::size_t endspace;
 			while (beginspace != std::string::npos)
@@ -39,22 +39,47 @@ class parsing
 				endspace = line.find_first_not_of(whitespace, beginspace);
 				std::size_t range = endspace - beginspace;
 				line.replace(beginspace, range, fill); // fill with only one space
-
 				beginspace = line.find_first_of(whitespace, beginspace + fill.length());
 			}
-			// if (line.find_first_of("{") != std::string::npos)
-			// 	bracket.push("{");
-			// else if (line.find_first_of("}") != std::string::npos)
-			// 	bracket.pop();
+			size_t chel;
+			if ((chel = line.find_first_of("{")) != std::string::npos)
+			{
+				if (line.find("{", chel + 1) != std::string::npos || line.find("}", chel + 1) != std::string::npos)
+				{
+					std::cout << "Error Brackets " << std::endl;
+					exit(1);
+				}
+				bracket.push("{");
+			}
+			if ((chel = line.find("}")) != std::string::npos)
+			{
+				if (line.find("}", chel + 1) != std::string::npos || line.find("{", chel + 1)  != std::string::npos)
+				{
+					std::cout << "Error Brackets " << std::endl;
+					exit(1);
+				}
+				if (bracket.size() == 0)
+				{
+					std::cout << "unclosed bracket" << std::endl;
+					exit(1);
+				}
+				bracket.pop();
+			}
 			return line;
 		}
 
 		void split_and_assign(std::string line, size_t i)
 		{
-			std::size_t key_;
-			std::cout << line << std::endl;
-			if ((key_ = line.find(" ")) != std::string::npos)
-				std::cout << line.substr(key_);
+			if (line.empty())
+				return; //
+			std::cout << "\n/" << std::endl;
+			std::stringstream ss(line);
+			std::vector<std::string> tokens;
+			std::string token;
+			while (getline(ss, token, ' '))
+				tokens.push_back(token);
+			for (std::vector<std::string>::iterator it = tokens.begin(); it != tokens.end(); it++)
+				std::cout << *it << std::endl;
 		}
 
 		void parse()
@@ -63,11 +88,12 @@ class parsing
 			for (std::vector<std::string>::iterator it = before_parse.begin(); it != before_parse.end(); it++)
 			{
 				// std::cout << *it << std::endl;
-				*it = reduce_space(*it, " \t\n\r\v\f\n", " ");
-				std::cout << *it << std::endl;
- 				// split_and_assign(*it, i);
+				*it = reduce_space(*it, " \t\n\r\v\f", " ");
+				// std::cout << *it << std::endl;
+				split_and_assign(*it, i);
 				i++;
 			}
+			
 		}
 		void check() {
 			if (bracket.size() > 0)
@@ -83,9 +109,10 @@ class parsing
 				while (getline(ifs, buff))
 					before_parse.push_back(buff);
 				parse();
-				check();
-				for (std::vector<std::vector<std::string> >::iterator it = matrix.begin(); it != matrix.end(); it++)
-					std::cout << *(it)->begin() << std::endl;
+				// check();
+			
+				// for (std::vector<std::vector<std::string> >::iterator it = matrix.begin(); it != matrix.end(); it++)
+				// 	std::cout << *(it)->begin() << std::endl;
 			} else {
 				std::cerr << "file Not Found" << std::endl;
 				exit(1); 

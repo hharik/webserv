@@ -5,19 +5,28 @@
 #include <utility>
 #include <algorithm>
 #include <sstream>
+
+
+struct data {
+
+};
+
 class parsing
 {
 	private:
 		int inside_main_bracket;
+		int	location_flag;
+		int count_locations;
 		std::string filename;
 		std::stack<std::string>	bracket;
 		std::vector <std::vector<std::string> > matrix;
+		std::vector <std::vector<std::string> > locations;
 		std::vector<std::string> before_parse;
 		std::map<std::string, std::vector<std::string> *> data;
 	public:
 
-		parsing(std::string filename1) : inside_main_bracket(0),  data(), filename(filename1), matrix(), bracket() { }
-		
+		parsing(std::string filename1) : inside_main_bracket(0), count_locations(0), data(), location_flag(0), filename(filename1), matrix(), bracket() { }
+
 		std::string trim(std::string line, std::string whitespace)
 		{
 			int i = 0;
@@ -68,10 +77,12 @@ class parsing
 			return line;
 		}
 
+
 		void split_and_assign(std::string line)
 		{
 			if (line.empty())
 				return;
+			size_t pos;
 			std::stringstream ss(line);
 			std::vector<std::string> tokens;
 			std::string token;
@@ -79,22 +90,44 @@ class parsing
 				tokens.push_back(token);
 			matrix.push_back(tokens);
 		}
+		
+		template <class InputIterator> InputIterator advance_and_check(InputIterator first)
+		{
+			std::vector<std::string> tokens;
+			while (((*first).find("}") == std::string::npos))
+			{
+				std::string token;
+				std::stringstream ss(*first);
+				while (getline(ss, token, ' '))
+					tokens.push_back(token);
+				first++;
+			}
+			tokens.push_back(*first);
+			locations.push_back(tokens);
+			return first;
+		}
 
 		void parse()
 		{
 			for (std::vector<std::string>::iterator it = before_parse.begin(); it != before_parse.end(); it++)
 			{
-				// std::cout << *it << std::endl;
 				*it = reduce_space(*it, " \t\n\r\v\f", " ");
-				// std::cout << *it << std::endl;
 				split_and_assign(*it);
 			}
+			for (std::vector<std::string>::iterator it = before_parse.begin(); it != before_parse.end(); it++)
+			{
+				if ((*it).find("location") != std::string::npos)
+					it = advance_and_check(it);
+			}
+			check();
 		}
+
 		void check() {
 			if (bracket.size() > 0)
 			{
 				std::cout << "unclosed bracket" << std::endl;
 			}
+			for (std::vector<std::string>::iterator it = )
 		}
 		void read_parse(){
 			std::string buff;
@@ -104,21 +137,23 @@ class parsing
 				while (getline(ifs, buff))
 					before_parse.push_back(buff);
 				parse();
-				check();
-				int i = 0;
-				int j = 0;
-
-				// for (std::vector<std::string>::iterator it = matrix[i].begin(); it != matrix[i].end(); it++, i++)
-				// 	std::cout << *it << std::endl;
-				for(int i=0; i< matrix.size(); i++)
-				{
-					for(int j=0; j < matrix.at(i).size(); j++)
-					{
-						std::cout  << "*" << matrix[i][j] << "*" << std::endl;
-					}
-				}
-				// for (std::vector<std::vector<std::string> >::iterator it = matrix.begin(); it != matrix.end(); it++)
-				// 	std::cout << it.at(1). << std::endl;
+				// std::cout << "MATRIX CONTENT " << matrix.size() << std::endl;
+				// for(int i=0; i< matrix.size(); i++)
+				// {
+				// 	for(int j=0; j < matrix.at(i).size(); j++)
+				// 	{
+				// 		std::cout  << "*" << matrix[i][j] << "*" << std::endl;
+				// 	}
+				// }
+				// std::cout << "*** LOCATIONS MATRIX **  "  << locations.size() << std::endl;
+				// for (int i = 0; i < locations.size(); i++)
+				// {
+				// 	for (int j = 0; j < locations[i].size(); j++)
+				// 	{
+				// 		std::cout << "*" << locations[i][j] << "*" << std::endl;
+				// 	}
+				// 	std::cout << std::endl;
+				// }
 			} else {
 				std::cerr << "file Not Found" << std::endl;
 				exit(1); 

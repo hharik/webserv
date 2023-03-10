@@ -22,7 +22,7 @@ class parsing
 		std::vector <std::vector<std::string> > matrix;
 		std::vector <std::vector<std::string> > locations;
 		std::vector<std::string> before_parse;
-		std::map<std::string, std::vector<std::string> *> data;
+		std::map<std::string, std::vector<std::vector<std::string> > > data;
 	public:
 
 		parsing(std::string filename1) : inside_main_bracket(0), count_locations(0), data(), location_flag(0), filename(filename1), matrix(), bracket() { }
@@ -127,8 +127,20 @@ class parsing
 			{
 				std::cout << "unclosed bracket" << std::endl;
 			}
-			for (std::vector<std::string>::iterator it = )
+			// for (std::vector<std::vector<std::string> >::iterator it = matrix.begin(); it != matrix.end(); it++)
+			// {
+			// 	std::cout << (*it).at(0) << "*" << std::endl;
+			// 	if((!(*it).at(0).find("server") && !(*it).at(0).find("server_name") && !(*it).at(0).find("root")  
+			// 	&& !(*it).at(0).find("index") && !(*it).at(0).find("}") && !(*it).at(0).find("listen") && !(*it).at(0).find("max_body_size") && 
+			// 	!(*it).at(0).find("auto_indexing") && !(*it).at(0).find("location") && !(*it).at(0).find("cgi") && !(*it).at(0).find("allowed_methods") 
+			// 	&& !(*it).at(0).find("redirect") && !(*it).at(0).find("\n")) != std::string::npos)
+			// 	{
+			// 		std::cout << "ERR ";
+			// 		exit(1);
+			// 	}
+			// }
 		}
+
 		void read_parse(){
 			std::string buff;
 			std::ifstream	ifs(filename);
@@ -145,7 +157,7 @@ class parsing
 				// 		std::cout  << "*" << matrix[i][j] << "*" << std::endl;
 				// 	}
 				// }
-				// std::cout << "*** LOCATIONS MATRIX **  "  << locations.size() << std::endl;
+				std::cout << "*** LOCATIONS MATRIX **  "  << locations.size() << std::endl;
 				// for (int i = 0; i < locations.size(); i++)
 				// {
 				// 	for (int j = 0; j < locations[i].size(); j++)

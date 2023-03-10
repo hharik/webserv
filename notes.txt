@@ -1,0 +1,6 @@
+1 : creating a socket (aka a phone that will be calling from )
+2 : bind a socket (bind a socket to the phone number u wanna call)
+3 : listen for a request 
+4 : accept the socket ("dont know yet but its the communication path") better use kqueue 
+5 : make the logical steps from the 4 previous parts: 
+

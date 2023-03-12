@@ -1,57 +1,104 @@
-#include <iostream>
+#include <assert.h>
+#include <stdio.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/event.h>
 #include <sys/ioctl.h>
-#include <arpa/inet.h>
+#include <iostream>
+#include <fcntl.h>
+#include <vector>
 
 
+int create_socket()
+{
+	int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+	int enable = 1;
+	setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port = htons(9090);
+	if (bind(socket_fd, (struct sockaddr *)&addr, sizeof(addr) ) <  0)
+		std::cout << "bind failed" << std::endl;
+	if (listen(socket_fd, 10) < 0)
+		std::cout << "listen failed" << std::endl;
+	return socket_fd;
+}
+
+void set_nonblocking(int socket_fd)
+{
+	int flags = fcntl(socket_fd, F_GETFL, 0);
+	fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK);
+}
 
 int main()
 {
-	int key = kqueue();
-	int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-	const int enable = 1;
+	int socket_fd =	 create_socket();
+	set_nonblocking(socket_fd);
 
-	//set reuse address for socket
-	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-		std::cout << "Socket error: " << std::endl;
-	struct  sockaddr_in host_addr;
-	host_addr.sin_family = AF_INET;
-	host_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	host_addr.sin_port = htons(9090);
-	if (bind(socket_fd, (struct sockaddr *)&host_addr, sizeof(host_addr)) != 0)
-		std::cout << "Bind failed : " << std::endl;
-	if (listen(socket_fd, 0) != 0)
-		std::cout << "Listen failed : " << std::endl;
-	std::cout << "listening on 9090" << std::endl;
-	struct kevent events[1];
-	EV_SET(&events[0], socket_fd, EVFILT_READ, EV_ADD, 0, 0, 0);
-	// if (ret == -1)
-	// 	std::cout << "kevent failed : " << std::endl;
-	std::cout << " \neee" << std::endl;
-	char buff[] = "HTTP/1.0 200 OK\r\n"
-                  "Server: webserver-c\r\n"
-				  "Content-type: text/html\r\n\r\n"
-                  "<html>hello, world</html>\r\n";
-	while (1)
+	// keque
+	int kq = kqueue();
+	if (kq < 0)
+		std::cout << "Error: kqueue " << std::endl;
+
+	struct kevent ev;
+	EV_SET(&ev, socket_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0,0, NULL);
+	if (kevent(kq, &ev, 1, NULL, 0, 0) < 0)
+		std::cout << "First kevent failed" << std::endl;
+	std::vector<int>  client_fds;
+	while (true)
 	{
-		int ret = kevent(key, events, 0, NULL, 0, 0);
-		if( ret == -1)
+		struct kevent events[1024];
+		int nev;
+		if ((nev = kevent(kq, NULL, 0, events, 1024, NULL)) < 0) 
 		{
-			std::cout << "something went wrong" << std::endl;
+			std::cout << "second kevent failed" << std::endl;
 			exit(1);
 		}
-		for (int i = 0; i < ret; i++)
-		{ 
-			if (events[i].filter == EVFILT_READ)
+		for (int i = 0; i < nev ; i++)
+		{
+			if (events[i].ident == socket_fd && events[i].filter == EVFILT_READ)
 			{
-				int new_socket = accept(events[i].ident, NULL,0);
-				char buffer[1024];
-				memset(buffer, 0, 1024);
-				read(new_socket, buffer ,sizeof(buffer));
-				close(new_socket);
+				struct sockaddr_in client_addr;
+				socklen_t client_len = sizeof(client_addr);
+				int client_fd = accept(socket_fd, (struct sockaddr *)&client_addr, &client_len);
+				std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+                    response += "<html><body><h1>Hello, World!</h1></body></html>";
+				if (client_fd < 0)
+					std::cout << "Failed to accept" << std::endl;
+				send(client_fd, );
+				// else {
+				// 	set_nonblocking(client_fd);
+				// 	EV_SET(&ev, client_fd, EVFILT_READ, EV_ADD, 0,0, NULL);
+				// 	if (kevent(kq, &ev, 1, NULL, 0, NULL) < 0)
+				// 		std::cout << "ERROR RRRR " << std::endl;
+				// 	else
+				// 		client_fds.push_back(client_fd);
+				// }
 			}
+			else if (events[i].ident != socket_fd &&  events[i].filter == EVFILT_READ)
+			{
+				char buf[1024];
+				int nbytes = recv(events[i].ident, buf, 1024, 0);
+				std::cout << buf << std::endl;
+				if (nbytes < 0)
+					std::cout << "ERRORR" << std::endl;
+				else if (nbytes == 0)
+				{
+					std::cout << "finished" << std::endl;
+					close(events[i].ident);
+				}
+				else {
+					
+					send(events[i].ident, response.c_str(), response.size(),0);
+					// for (long long i = 0; i < LONG_MAX; i++)
+						// write(events[i].ident, "a", 1);
+					close(events[i].ident);
+				}
+			}
+		close(events[i].ident);
 		}
 	}
 }

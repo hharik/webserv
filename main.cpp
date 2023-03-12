@@ -1,70 +1,118 @@
-#include <sys/socket.h>
-#include <iostream>
-#include <arpa/inet.h>
+#include <assert.h>
+#include <stdio.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/event.h>
+#include "parsing_file/parse.hpp"
+#include <sys/ioctl.h>
+#include <iostream>
+#include <fcntl.h>
+#include <vector>
+#include "parsing_header.hpp"
 
-// 1: create a socket
-// 2 : “assigning a name to a socket” (bind)
-// 3 : listen for incoming connections (listen)
-
-//  struct sockaddr_in {
-//               sa_family_t    sin_family; /* address family: AF_INET */
-//               in_port_t      sin_port;   /* port in network byte order */
-// 		 struct in_addr sin_addr;   /* internet address */
-//           };
-//           /* Internet address */
-//           struct in_addr {
-//               uint32_t       s_addr;     /* address in network byte order */
-//           }; 
-int main()
+int socket_create()
 {
-	int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-	const int enable = 1;
-	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-		std::cout << "setsockopt failed " << std::endl;
+	int sc = socket(AF_INET, SOCK_STREAM, 0);
+	int enable = 1;
+	setsockopt(sc, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
 	struct sockaddr_in host_addr;
 	host_addr.sin_family = AF_INET;
 	host_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	host_addr.sin_port = htons(9090);// htons(9099)
-	if (bind(socket_fd, (struct sockaddr *)&host_addr, sizeof(host_addr)) != 0)
+	host_addr.sin_port = htons(9090);
+	if (bind(sc,(struct sockaddr *)&host_addr, sizeof(host_addr)) != 0)
+		std::cout << "bind failed" << std::endl;
+	if (listen(sc, 10) != 0)
+		std::cout << "Listen failed" <<std::endl;
+	return sc;
+}
+
+void set_nonblocking(int socket_fd)
+{
+	int flag = fcntl(socket_fd, F_GETFL, 0);
+	fcntl(socket_fd, F_SETFL, flag | O_NONBLOCK);
+}
+
+
+
+	// std::cout << token << std::endl;
+	// 	std::string line;
+	// 	std::stringstream ss1(token);
+	// 	std::vector<std::string> tokens;
+	// 	while (getline(ss1, line, ' '))
+	// 	{		
+	// 		std::cout << line << std::endl;
+	// 		if (line.length() == 1)
+	// 		{
+	// 			// parse_body
+	// 		}
+	// 		tokens.push_back(line);
+	// 	}
+	// 	matrix.push_back(tokens);
+	// 	// check_header(token);
+	
+	// }
+	// // if (matrix[0][0].find_first_not_of("GET DELETE POST") != std::string::npos)
+	// {
+	// 	std::string not_response = "HTTP/1.1 501 Bad Request\r\nContent-Type: text/html\r\n\r\n";
+	// 	not_response += "<html><body><h1>501 - Not Implemented!</h1></body></html>";
+	// 	send(client_fd,not_response.c_str(), not_response.size(), 0);
+	// 	return;
+	// }
+	// if (matrix.at(0).size() > 3 || matrix[0][1].find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=") != std::string::npos) 
+	// {
+	// 	std::string bad_response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\n\r\n";
+	// 	bad_response += "<html><body><h1>400 - Bad Request!</h1></body></html>";
+	// 	send(client_fd, bad_response.c_str(), bad_response.size(), 0);
+	// 	return;
+	// }
+	// if (matrix[0][1].size() > 2048)
+	// {
+	// 	std::string to_long = "HTTP/1.1 414 Request-URI Too Long \r\nContent-Type: text/html\r\n\r\n";
+	// 	to_long += "<html><body><h1>414 Request URI Too long!</h1></body></html>";
+	// 	send(client_fd, to_long.c_str(), to_long.size(), 0);
+	// }
+
+
+
+
+
+
+
+
+
+int main()
+{
+	parsing_header r;
+	parsing conf;
+	conf.read_parse();
+	int socket_fd = socket_create();
+	std::cout << "listening on port 9090" << std::endl;
+	// set_nonblocking(socket_fd);
+	std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+                    response += "<html><body><h1>Hello, World!</h1></body></html>";
+	for (;;)
 	{
-		std::cout << "error in binding socket" << std::endl;
-		return -1;
-	}
-	if (listen(socket_fd, 128) != 0)
-		std::cout << "error in listening socket" << std::endl;
-	unsigned int size = sizeof(host_addr);
-	char res[] = "HTTP/1.0 200 OK\r\n"
-                  "Server: webserver-c\r\n"
-				  "Content-type: text/html\r\n\r\n"
-                  "<html>hello, world</html>\r\n";
-	struct sockaddr_in client_addr;
-	std::cout << "Listening on port 9090" << std::endl;
-	while (1)
-	{
-		int new_socket = accept(socket_fd,(struct sockaddr *)&host_addr, &size);
-		std::cout << " ---- " << new_socket << std::endl;
-		// int sockn;
-		// if ((sockn = getsockname(new_socket,(struct sockaddr *)&client_addr, (socklen_t *)&client_addr)) < 0)
-		// 	std::cout << "failed to get socket name" << std::endl;
-		if (new_socket > 0)
+		char buffer[8000];
+		std::string req;
+		struct sockaddr_in host_addr;
+		int new_socket = accept(socket_fd, (struct sockaddr *)&host_addr, (socklen_t *)&host_addr);
+		if (new_socket < 0)
 		{
-			char buf[1000];
-			bzero(buf,sizeof(buf));
-			read(new_socket, buf, sizeof(buf));
-			std::cout << buf << std::endl;
-			int walt = write(new_socket, res, strlen(res));
-			if (walt < 0)
-				std::cout << "shittt not sent" << std::endl;
+			std::cout << "failed to accept socket " << socket_fd << std::endl;
+			continue;
 		}
-		for (long long i = 0; i < LLONG_MAX; i++)
-			write(new_socket, "a", 1);
-		for (long long i = 0; i < LLONG_MAX; i++)
-			write(new_socket, "a", 1);
+		std::cout << "connection established" << std::endl;
+		int valread = recv(new_socket, buffer, sizeof(buffer), 0);
+		if (valread < 0)
+		{
+			perror("webserver (accept)");
+			continue;
+		}
+		req = buffer;
+		r.parse_header(req, new_socket);
+		// send(new_socket, response.c_str(), response.size(), 0);
 		close(new_socket);
 	}
-	// if (socket_fd < 0)
-	// 	std::cout << "socket failed " << std::endl;
-	// else
-	// 	std::cout << "socket created " << socket_fd << std::endl;
 }

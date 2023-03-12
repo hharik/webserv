@@ -1,3 +1,5 @@
+#ifndef PARSE_HPP_
+#define PARSE_HPP_
 #include <iostream>
 #include <map>
 #include <fstream>
@@ -7,9 +9,6 @@
 #include <sstream>
 
 
-struct data {
-
-};
 
 class parsing
 {
@@ -25,7 +24,7 @@ class parsing
 		std::map<std::string, std::vector<std::vector<std::string> > > data;
 	public:
 
-		parsing(std::string filename1) : inside_main_bracket(0), count_locations(0), data(), location_flag(0), filename(filename1), matrix(), bracket() { }
+		parsing(std::string filename1 = "/Users/hharik/Desktop/webserv/parsing_file/config.conf") : inside_main_bracket(0), count_locations(0), data(), location_flag(0), filename(filename1), matrix(), bracket() { }
 
 		std::string trim(std::string line, std::string whitespace)
 		{
@@ -149,7 +148,7 @@ class parsing
 				while (getline(ifs, buff))
 					before_parse.push_back(buff);
 				parse();
-				// std::cout << "MATRIX CONTENT " << matrix.size() << std::endl;
+				std::cout << "MATRIX CONTENT " << matrix.size() << std::endl;
 				// for(int i=0; i< matrix.size(); i++)
 				// {
 				// 	for(int j=0; j < matrix.at(i).size(); j++)
@@ -175,13 +174,4 @@ class parsing
 	
 };
 
-int main()
-{
-
-	parsing a("config.conf");
-	a.read_parse();
-
-	// for (std::vector<std::string>::iterator it = a.before_parse.begin(); it != a.before_parse.end(); it++)
-		// std::cout << *(a.before_parse.begin() + 1)  << std::endl;
-
-}
+#endif
